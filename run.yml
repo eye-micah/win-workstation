@@ -1,0 +1,110 @@
+---
+- name: Windows provisioning
+  hosts: windows 
+  tasks:
+
+  vars:
+    essential_pkgs:
+      - sumatrapdf
+      - cpu-z
+      - 7zip
+      - mpv 
+      - firefox 
+      - kdenlive
+      - gimp
+      - localsend
+
+    gaming_pkgs:
+      - steam 
+      - playnite 
+      - locale-emulator 
+      - pcsx2 
+      - higan 
+      - dolphin
+  
+  tasks:
+    - name: Configure firewall
+      win_firewall_rule:
+        name: "Allow SSH"
+        localport: 22
+        protocol: tcp
+        action: allow
+        state: enabled
+      tags: [system, security]
+
+    - name: enable hyper-v
+      win_feature:
+        name: Hyper-V 
+        state: present 
+        restart: yes
+      tags: [vm, system]
+
+    - name: install wsl
+      win_feature:
+        name: Microsoft-Windows-Subsystem-Linux
+        state: present
+      tags: [vm, wsl, linux, system]
+
+    - name: enable vm platform for wsl2
+      win_feature:
+        name: Microsoft-Windows-Subsystem-Linux-Platform-Feature
+        state: present
+      tags: [vm, wsl, linux, system]
+
+    - name: Install VSCode
+      win_chocolatey:
+        name: vscode 
+        state: present
+      tags: [chocolatey, dev]
+
+    - name: Install Packer
+      win_chocolatey:
+        name: packer 
+        state: present
+      tags: [chocolatey, dev, vms]
+
+    - name: Install Vagrant
+      win_chocolatey:
+        name: vagrant 
+        state: present
+      tags: [chocolatey, dev, vms] 
+
+    - name: Disable unused Windows features
+      win_feature:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - PowerShell_ISE
+        - TelnetClient
+        - SMB1Protocol
+      tags: [system, security]
+
+    - name: Disable SMBv1
+      win_feature:
+        name: FS-SMB1
+        state: disabled
+      tags: [system, security]
+
+    - name: Enable Windows Defender Firewall
+      win_service:
+        name: MpsSvc
+        start_mode: auto
+        state: started
+      tags: [system, security]
+
+    - name: Install nice to have apps
+      win_chocolatey:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ essential_pkgs }}"
+      tags: [essential]
+
+    - name: Install gamer slop 
+      win_chocolatey:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ gaming_pkgs }}"
+      tags: [gaming]
+    
